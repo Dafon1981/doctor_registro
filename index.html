@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>VeriDoc-Med: Registro de Doctores</title>
+    <title>VeriDoc-Med: Registro de Doctores v1.1</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.8"></script>
     <style>
         :root {
@@ -75,6 +75,30 @@
             display: grid;
             grid-template-columns: 1fr 1fr;
             gap: 20px;
+        }
+        /* --- NUEVO: Contenedor para el campo de contraseña y el ojo --- */
+        .password-wrapper {
+            position: relative;
+            display: flex;
+            align-items: center;
+        }
+        .password-wrapper input {
+            padding-right: 40px; /* Espacio para el ojo */
+        }
+        .toggle-password {
+            position: absolute;
+            right: 10px;
+            top: 50%;
+            transform: translateY(-50%);
+            cursor: pointer;
+            width: 24px;
+            height: 24px;
+            background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="%237f8c8d" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>' );
+            background-repeat: no-repeat;
+            background-position: center;
+        }
+        .toggle-password.visible {
+             background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="%237f8c8d" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line></svg>' );
         }
         .canvas-container {
             text-align: center;
@@ -167,7 +191,11 @@
             </div>
             <div>
                 <label for="clave">Crear Contraseña</label>
-                <input type="password" id="clave" required>
+                <!-- CAMBIO: Contenedor para el campo de contraseña y el ojo -->
+                <div class="password-wrapper">
+                    <input type="password" id="clave" required>
+                    <span class="toggle-password" onclick="togglePasswordVisibility()"></span>
+                </div>
             </div>
         </div>
         
@@ -201,16 +229,15 @@
 
     // --- Inicialización al cargar la página ---
     window.onload = async () => {
-        // Cargar todos los doctores en memoria para una búsqueda rápida
+        // AJUSTE: Usar 'nombre' en lugar de 'nombre_completo'
         const { data, error } = await supabaseClient.from('doctores').select('id, nombre');
         if (error) {
             console.error('Error cargando doctores:', error);
             return;
         }
         allDoctors = data;
-        displayDoctors(allDoctors); // Mostrar todos al inicio
+        displayDoctors(allDoctors);
 
-        // Inicializar el canvas
         canvas = document.getElementById('signature-canvas');
         ctx = canvas.getContext('2d');
         setupCanvas();
@@ -219,6 +246,7 @@
     // --- Lógica de Búsqueda ---
     function searchDoctors() {
         const query = document.getElementById('search-doctor').value.toLowerCase();
+        // AJUSTE: Usar 'nombre' para el filtro
         const filteredDoctors = allDoctors.filter(doc => doc.nombre.toLowerCase().includes(query));
         displayDoctors(filteredDoctors);
     }
@@ -229,6 +257,7 @@
         doctors.forEach(doc => {
             const item = document.createElement('div');
             item.className = 'doctor-item';
+            // AJUSTE: Usar 'nombre' para mostrar
             item.textContent = doc.nombre;
             item.onclick = () => selectDoctor(doc.id, doc.nombre);
             listElement.appendChild(item);
@@ -244,8 +273,22 @@
 
 
 
+        // --- NUEVO: Lógica para mostrar/ocultar contraseña ---
+    function togglePasswordVisibility() {
+        const passwordInput = document.getElementById('clave');
+        const toggleIcon = document.querySelector('.toggle-password');
+        
+        // Cambiar el tipo de input
+        if (passwordInput.type === 'password') {
+            passwordInput.type = 'text';
+            toggleIcon.classList.add('visible'); // Cambia al ícono de "ojo tachado"
+        } else {
+            passwordInput.type = 'password';
+            toggleIcon.classList.remove('visible'); // Vuelve al ícono de "ojo normal"
+        }
+    }
 
-        // --- Lógica del Canvas para Dibujar ---
+    // --- Lógica del Canvas para Dibujar (sin cambios) ---
     function setupCanvas() {
         let drawing = false;
         let lastX = 0;
@@ -253,18 +296,12 @@
 
         function getMousePos(canvasDom, mouseEvent) {
             const rect = canvasDom.getBoundingClientRect();
-            return {
-                x: mouseEvent.clientX - rect.left,
-                y: mouseEvent.clientY - rect.top
-            };
+            return { x: mouseEvent.clientX - rect.left, y: mouseEvent.clientY - rect.top };
         }
 
         function getTouchPos(canvasDom, touchEvent) {
             const rect = canvasDom.getBoundingClientRect();
-            return {
-                x: touchEvent.touches[0].clientX - rect.left,
-                y: touchEvent.touches[0].clientY - rect.top
-            };
+            return { x: touchEvent.touches[0].clientX - rect.left, y: touchEvent.touches[0].clientY - rect.top };
         }
 
         function startDrawing(e) {
@@ -292,13 +329,10 @@
             drawing = false;
         }
 
-        // Eventos para Mouse
         canvas.addEventListener('mousedown', startDrawing);
         canvas.addEventListener('mousemove', draw);
         canvas.addEventListener('mouseup', stopDrawing);
         canvas.addEventListener('mouseout', stopDrawing);
-
-        // Eventos para Pantallas Táctiles
         canvas.addEventListener('touchstart', startDrawing);
         canvas.addEventListener('touchmove', draw);
         canvas.addEventListener('touchend', stopDrawing);
@@ -313,12 +347,11 @@
         return !pixelBuffer.some(color => color !== 0);
     }
 
-    // --- Lógica de Guardado ---
+    // --- Lógica de Guardado (Ajustada) ---
     async function saveProfileAndSignature() {
         const saveButton = document.getElementById('save-button');
         const messageDiv = document.getElementById('message');
         
-        // 1. Validar los campos del formulario
         const dni = document.getElementById('dni').value.trim();
         const cmp = document.getElementById('cmp').value.trim();
         const email = document.getElementById('email').value.trim();
@@ -338,13 +371,10 @@
         messageDiv.classList.add('hidden');
 
         try {
-            // 2. Convertir el canvas a un archivo (Blob)
             const dataURL = canvas.toDataURL('image/png');
             const response = await fetch(dataURL);
             const blob = await response.blob();
             
-            // 3. Subir la imagen de la firma al Storage de Supabase
-            // Se guardará en el bucket 'firma_doctores' con una ruta única.
             const filePath = `public/${dni}_${Date.now()}.png`;
             const { error: uploadError } = await supabaseClient.storage
                 .from('firma_doctores')
@@ -357,22 +387,21 @@
                 throw new Error(`Error al subir la firma: ${uploadError.message}`);
             }
 
-            // 4. Obtener la URL pública del archivo subido
             const { data: urlData } = supabaseClient.storage
                 .from('firma_doctores')
                 .getPublicUrl(filePath);
             
-            const firmaMaestraUrl = urlData.publicUrl;
+            const firmaUrl = urlData.publicUrl;
 
-            // 5. Actualizar el registro del doctor en la tabla 'doctores'
+            // AJUSTE: Actualizar el registro usando los nombres de columna correctos
             const { error: updateError } = await supabaseClient
                 .from('doctores')
                 .update({
                     dni: dni,
                     cmp: cmp,
                     email: email,
-                    clave: clave, // En un sistema real, esto debería ser hasheado.
-                    firma_maestra_url: firmaMaestraUrl
+                    clave: clave,
+                    firma: firmaUrl // Usamos 'firma' en lugar de 'firma_maestra_url'
                 })
                 .eq('id', selectedDoctorId);
 
@@ -380,13 +409,11 @@
                 throw new Error(`Error al actualizar el perfil: ${updateError.message}`);
             }
 
-            // 6. Mostrar mensaje de éxito
             messageDiv.textContent = '¡Perfil y firma guardados exitosamente!';
             messageDiv.className = 'message-success';
             document.getElementById('form-section').classList.add('hidden');
 
         } catch (error) {
-            // 7. Manejar cualquier error que ocurra en el proceso
             messageDiv.textContent = `Error: ${error.message}`;
             messageDiv.className = 'message-error';
             saveButton.disabled = false;
