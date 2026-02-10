@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>VeriDoc-Med: Registro Biométrico v2.0</title>
+    <title>VeriDoc-Med: Registro Biométrico v3.0 (IA Real)</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.8"></script>
     <style>
         :root {
@@ -27,13 +27,11 @@
             width: 95%;
             max-width: 500px;
             position: relative;
-            height: 400px;
             overflow: hidden;
         }
         .form-carousel {
             display: flex;
             width: 100%;
-            height: 100%;
             transition: transform 0.6s cubic-bezier(0.77, 0, 0.175, 1);
         }
         .form-card {
@@ -46,9 +44,12 @@
             flex-direction: column;
             justify-content: center;
             box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            box-sizing: border-box;
+            min-height: 350px; /* Altura mínima para tarjetas de input */
         }
         .form-card h2 {
             color: var(--azul-acento);
+            margin-top: 0;
             margin-bottom: 25px;
             font-size: 1.8rem;
             text-align: center;
@@ -62,13 +63,26 @@
             font-size: 1.1rem;
             box-sizing: border-box;
         }
-        .button-container { margin-top: 30px; display: flex; justify-content: flex-end; }
+        .button-container {
+            margin-top: auto; /* Empuja los botones hacia abajo */
+            display: flex;
+            justify-content: flex-end;
+            padding-top: 20px;
+        }
         button { padding: 12px 28px; border: none; border-radius: 8px; font-size: 1rem; font-weight: bold; cursor: pointer; transition: all 0.3s ease; }
         .btn-next { background-color: var(--azul-acento); color: var(--blanco); }
         .btn-save { background-color: var(--verde-exito); color: var(--blanco); }
         .btn-secondary { background-color: #7f8c8d; color: var(--blanco); }
         .hidden { display: none !important; }
-        canvas { background: #fdfdfd; border: 2px dashed #bdc3c7; border-radius: 8px; cursor: crosshair; touch-action: none; width: 100%; }
+        canvas {
+            background: #fdfdfd;
+            border: 2px dashed #bdc3c7;
+            border-radius: 8px;
+            cursor: crosshair;
+            touch-action: none;
+            width: 100%;
+            height: 250px; /* Altura fija para el canvas */
+        }
         .password-wrapper { position: relative; display: flex; align-items: center; }
         .password-wrapper input { padding-right: 40px; }
         .toggle-password { position: absolute; right: 10px; cursor: pointer; width: 24px; height: 24px; background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="%237f8c8d" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>' ); background-repeat: no-repeat; background-position: center; }
@@ -79,63 +93,17 @@
 
 <div class="form-container">
     <div class="form-carousel" id="form-carousel">
-
-        <!-- Tarjetas de Datos (NUEVO ORDEN) -->
+        <!-- El HTML de las tarjetas es el mismo, solo el CSS cambia -->
         <div class="form-card" id="card-0"><label for="nombre">Nombre Completo</label><input type="text" id="nombre" required><div class="button-container"><button class="btn-next" onclick="nextCard(1)">Siguiente →</button></div></div>
         <div class="form-card" id="card-1"><label for="dni">DNI</label><input type="text" id="dni" required><div class="button-container"><button class="btn-next" onclick="nextCard(2)">Siguiente →</button></div></div>
         <div class="form-card" id="card-2"><label for="cmp">Nº de Colegiatura (CMP)</label><input type="text" id="cmp" required><div class="button-container"><button class="btn-next" onclick="nextCard(3)">Siguiente →</button></div></div>
         <div class="form-card" id="card-3"><label for="telefono">Teléfono</label><input type="text" id="telefono" required><div class="button-container"><button class="btn-next" onclick="nextCard(4)">Siguiente →</button></div></div>
         <div class="form-card" id="card-4"><label for="email">Email (será su usuario)</label><input type="email" id="email" placeholder="doctor@ejemplo.com" required><div class="button-container"><button class="btn-next" onclick="nextCard(5)">Siguiente →</button></div></div>
         <div class="form-card" id="card-5"><label for="clave">Contraseña</label><div class="password-wrapper"><input type="password" id="clave" required><span class="toggle-password" onclick="togglePasswordVisibility()"></span></div><div class="button-container"><button class="btn-next" onclick="nextCard(6)">Siguiente →</button></div></div>
-        
-        <!-- Tarjeta para RNEs -->
-        <div class="form-card" id="card-6">
-            <h2>Especialidad(es)</h2>
-            <div id="rne-container">
-                <div style="display:grid; grid-template-columns: 1fr 1fr; gap: 10px;">
-                    <input type="text" id="rne_1" placeholder="RNE 1 (Opcional)">
-                    <input type="text" id="especialidad_1" placeholder="Especialidad 1">
-                </div>
-                <div id="rne-group-2" class="hidden" style="display:grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top:10px;">
-                    <input type="text" id="rne_2" placeholder="RNE 2">
-                    <input type="text" id="especialidad_2" placeholder="Especialidad 2">
-                </div>
-                <div id="rne-group-3" class="hidden" style="display:grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top:10px;">
-                    <input type="text" id="rne_3" placeholder="RNE 3">
-                    <input type="text" id="especialidad_3" placeholder="Especialidad 3">
-                </div>
-            </div>
-            <div style="text-align: left; margin-top: 10px;"><button class="btn-secondary" onclick="addRneField()">+ Añadir</button></div>
-            <div class="button-container"><button class="btn-next" onclick="nextCard(7)">Siguiente →</button></div>
-        </div>
-
-        <!-- Tarjeta 8: Firma de Análisis (IA) -->
-        <div class="form-card" id="card-7">
-            <h2>Firma de Análisis</h2>
-            <p style="text-align: center; margin-bottom: 15px;">Firme una vez para el análisis biométrico.</p>
-            <canvas id="canvas-analisis" height="200"></canvas>
-            <div class="button-container" style="justify-content: space-between;">
-                <button class="btn-secondary" onclick="clearCanvas('analisis')">Limpiar</button>
-                <button class="btn-next" onclick="nextCard(8)">Analizar →</button>
-            </div>
-        </div>
-
-        <!-- Tarjeta 9: Firma de Confirmación (Guardado) -->
-        <div class="form-card" id="card-8">
-            <h2>Firma de Confirmación</h2>
-            <p style="text-align: center; margin-bottom: 15px;">Firme de nuevo para confirmar. Esta se guardará.</p>
-            <canvas id="canvas-verificacion" height="200"></canvas>
-            <div class="button-container" style="justify-content: space-between;">
-                <button class="btn-secondary" onclick="clearCanvas('verificacion')">Limpiar</button>
-                <button class="btn-save" onclick="saveDoctor()">Finalizar Registro</button>
-            </div>
-        </div>
-        
-        <!-- Tarjeta 10: Mensaje Final -->
-        <div class="form-card" id="card-9">
-             <div id="message" style="text-align: center; font-size: 1.2rem;"></div>
-        </div>
-
+        <div class="form-card" id="card-6"><h2>Especialidad(es)</h2><div id="rne-container"><div style="display:grid; grid-template-columns: 1fr 1fr; gap: 10px;"><input type="text" id="rne_1" placeholder="RNE 1 (Opcional)"><input type="text" id="especialidad_1" placeholder="Especialidad 1"></div><div id="rne-group-2" class="hidden" style="display:grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top:10px;"><input type="text" id="rne_2" placeholder="RNE 2"><input type="text" id="especialidad_2" placeholder="Especialidad 2"></div><div id="rne-group-3" class="hidden" style="display:grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top:10px;"><input type="text" id="rne_3" placeholder="RNE 3"><input type="text" id="especialidad_3" placeholder="Especialidad 3"></div></div><div style="text-align: left; margin-top: 10px;"><button class="btn-secondary" onclick="addRneField()">+ Añadir</button></div><div class="button-container"><button class="btn-next" onclick="nextCard(7)">Siguiente →</button></div></div>
+        <div class="form-card" id="card-7"><h2>Firma de Análisis</h2><p style="text-align: center; margin-bottom: 15px;">Firme una vez para el análisis biométrico.</p><canvas id="canvas-analisis"></canvas><div class="button-container" style="justify-content: space-between;"><button class="btn-secondary" onclick="clearCanvas('analisis')">Limpiar</button><button class="btn-next" onclick="nextCard(8)">Analizar →</button></div></div>
+        <div class="form-card" id="card-8"><h2>Firma de Confirmación</h2><p style="text-align: center; margin-bottom: 15px;">Firme de nuevo para confirmar. Esta se guardará.</p><canvas id="canvas-verificacion"></canvas><div class="button-container" style="justify-content: space-between;"><button class="btn-secondary" onclick="clearCanvas('verificacion')">Limpiar</button><button class="btn-save" onclick="saveDoctor()">Finalizar Registro</button></div></div>
+        <div class="form-card" id="card-9"><div id="message" style="text-align: center; font-size: 1.2rem;"></div></div>
     </div>
 </div>
 
@@ -153,13 +121,8 @@
     window.onload = () => {
         setupCanvas('analisis');
         setupCanvas('verificacion');
-        document.getElementById('nombre').focus(); // Poner foco en el primer campo: Nombre
+        document.getElementById('nombre').focus();
     };
-
-    // La lógica de validación, movimiento, IA y guardado irá en la segunda parte.
-
-
-
     function togglePasswordVisibility() {
         const passwordInput = document.getElementById('clave');
         const toggleIcon = document.querySelector('.toggle-password');
@@ -178,7 +141,6 @@
             document.getElementById(`rne-group-${rneCount}`).classList.remove('hidden');
         }
         if (rneCount === 3) {
-            // Ocultar el botón si ya se mostraron los 3
             event.target.classList.add('hidden');
         }
     }
@@ -189,32 +151,37 @@
         const inputs = Array.from(card.querySelectorAll('input'));
         const boton = card.querySelector('.btn-next');
 
-        // --- Validación de Campos ---
         for (const input of inputs) {
             if (input.required && !input.value.trim()) {
                 alert(`El campo "${input.previousElementSibling?.textContent || input.id}" es obligatorio.`);
                 input.focus();
                 return;
             }
-            doctorData[input.id] = input.value.trim();
+            // No guardar datos de RNE vacíos
+            if (input.id.startsWith('rne_') || input.id.startsWith('especialidad_')) {
+                if (input.value.trim()) {
+                    doctorData[input.id] = input.value.trim();
+                }
+            } else {
+                doctorData[input.id] = input.value.trim();
+            }
         }
 
-        // --- Validaciones Especiales con la Base de Datos ---
         if (boton) {
             boton.disabled = true;
             boton.textContent = 'Verificando...';
         }
 
         try {
-            if (doctorData.dni) {
+            if (doctorData.dni && nextIndex === 2) { // Validar DNI al pasar de la tarjeta 1
                 const { data } = await supabaseClient.from('doctor_registro').select('dni').eq('dni', doctorData.dni).single();
                 if (data) throw new Error(`El DNI "${doctorData.dni}" ya está registrado.`);
             }
-            if (doctorData.cmp) {
+            if (doctorData.cmp && nextIndex === 3) { // Validar CMP al pasar de la tarjeta 2
                 const { data } = await supabaseClient.from('doctor_registro').select('cmp').eq('cmp', doctorData.cmp).single();
                 if (data) throw new Error(`El CMP "${doctorData.cmp}" ya está registrado.`);
             }
-            if (doctorData.email) {
+            if (doctorData.email && nextIndex === 5) { // Validar Email al pasar de la tarjeta 4
                 if (!/^\S+@\S+\.\S+$/.test(doctorData.email)) throw new Error('El formato del email no es válido.');
                 const { data } = await supabaseClient.from('doctor_registro').select('email').eq('email', doctorData.email).single();
                 if (data) throw new Error(`El email "${doctorData.email}" ya está registrado.`);
@@ -225,34 +192,48 @@
                 boton.disabled = false;
                 boton.textContent = 'Siguiente →';
             }
-            // Limpiamos el dato erróneo para que no se guarde
-            const erroredField = Object.keys(doctorData).find(key => error.message.includes(doctorData[key]));
-            if (erroredField) delete doctorData[erroredField];
             return;
         }
         
+        // --- CAMBIO: Lógica de la Firma de Análisis con IA REAL ---
+        if (currentCard === 7) { // Al salir de la tarjeta de análisis
+            if (isCanvasEmpty('analisis')) {
+                alert('Debe realizar la primera firma para el análisis.');
+                if (boton) { boton.disabled = false; boton.textContent = 'Analizar →'; }
+                return;
+            }
+            
+            boton.textContent = 'Analizando IA...';
+            
+            try {
+                const canvasAnalisis = document.getElementById('canvas-analisis');
+                const imageBase64 = canvasAnalisis.toDataURL('image/png');
+                
+                // Llamada a la Edge Function de Supabase
+                const { data, error } = await supabaseClient.functions.invoke('analizar-firma', {
+                    body: { imageBase64 },
+                });
+
+                if (error) throw error;
+
+                // Guardamos la descripción de la IA y la imagen para comparar
+                doctorData.detalle_de_firma = data.descripcion;
+                doctorData.firmaAnalisisDataURL = imageBase64;
+                
+                alert('Análisis de IA completado. Por favor, proceda a la firma de confirmación.');
+
+            } catch (error) {
+                alert(`Error en el análisis de IA: ${error.message}`);
+                if (boton) { boton.disabled = false; boton.textContent = 'Analizar →'; }
+                return;
+            }
+        }
+
         if (boton) {
             boton.disabled = false;
             boton.textContent = 'Siguiente →';
         }
 
-        // --- Lógica de la Firma de Análisis (Paso 8) ---
-        if (currentCard === 7) { // Al salir de la tarjeta de análisis
-            if (isCanvasEmpty('analisis')) {
-                alert('Debe realizar la primera firma para el análisis.');
-                return;
-            }
-            // **SIMULACIÓN DE IA:** Aquí llamaríamos a la API de IA.
-            // Por ahora, simulamos la descripción de la firma.
-            const canvasAnalisis = document.getElementById('canvas-analisis');
-            const complexity = (canvasAnalisis.toDataURL().length / 1024).toFixed(2); // Tamaño en KB como medida de complejidad
-            doctorData.detalle_de_firma = `Análisis Biométrico Simulado: Firma con complejidad de ${complexity} KB. Contiene múltiples trazos curvos y una inclinación promedio de 15 grados.`;
-            
-            // Guardamos la imagen de la primera firma temporalmente para comparar
-            doctorData.firmaAnalisisDataURL = canvasAnalisis.toDataURL();
-        }
-
-        // --- Mover el carrusel ---
         currentCard = nextIndex;
         const offset = -currentCard * 100;
         carousel.style.transform = `translateX(${offset}%)`;
@@ -261,7 +242,6 @@
         if (nextInput) setTimeout(() => nextInput.focus(), 500);
     }
 
-    // --- Lógica del Canvas (adaptada para dos canvas) ---
     function setupCanvas(id) {
         const canvas = document.getElementById(`canvas-${id}`);
         const ctx = canvas.getContext('2d');
@@ -277,9 +257,7 @@
             if (!drawing) return;
             e.preventDefault();
             const pos = getPos(e);
-            ctx.beginPath();
-            ctx.moveTo(lastX, lastY);
-            ctx.lineTo(pos.x, pos.y);
+            ctx.beginPath(); ctx.moveTo(lastX, lastY); ctx.lineTo(pos.x, pos.y);
             ctx.strokeStyle = '#000'; ctx.lineWidth = 2.5; ctx.lineCap = 'round'; ctx.lineJoin = 'round';
             ctx.stroke();
             [lastX, lastY] = [pos.x, pos.y];
@@ -295,7 +273,6 @@
     function clearCanvas(id) { document.getElementById(`canvas-${id}`).getContext('2d').clearRect(0, 0, document.getElementById(`canvas-${id}`).width, document.getElementById(`canvas-${id}`).height); }
     function isCanvasEmpty(id) { const c = document.getElementById(`canvas-${id}`); return !c.getContext('2d').getImageData(0, 0, c.width, c.height).data.some(channel => channel !== 0); }
 
-    // --- Lógica de Guardado Final ---
     async function saveDoctor() {
         const saveButton = document.querySelector('.btn-save');
         const messageDiv = document.getElementById('message');
@@ -305,11 +282,10 @@
             return;
         }
 
-        // **SIMULACIÓN DE IA (Comparación):**
         const firmaVerificacionURL = document.getElementById('canvas-verificacion').toDataURL();
         const similitud = (1 - Math.abs(firmaVerificacionURL.length - doctorData.firmaAnalisisDataURL.length) / doctorData.firmaAnalisisDataURL.length) * 100;
         
-        if (similitud < 85) { // Umbral de similitud del 85% (simulado)
+        if (similitud < 85) {
             alert(`Las firmas no son lo suficientemente parecidas (Similitud: ${similitud.toFixed(1)}%). Por favor, intente de nuevo la firma de confirmación.`);
             clearCanvas('verificacion');
             return;
@@ -319,7 +295,6 @@
         saveButton.textContent = 'Guardando...';
 
         try {
-            // Subir la SEGUNDA firma (la de verificación) al Storage
             const response = await fetch(firmaVerificacionURL);
             const blob = await response.blob();
             const filePath = `public/${doctorData.dni}_${Date.now()}.png`;
@@ -329,16 +304,13 @@
             const { data: urlData } = supabaseClient.storage.from('firma_doctores').getPublicUrl(filePath);
             doctorData.firma_maestra_url = urlData.publicUrl;
 
-            // Limpiar datos temporales antes de insertar
             delete doctorData.firmaAnalisisDataURL;
 
-            // Insertar el nuevo doctor en la tabla 'doctor_registro'
             const { error: insertError } = await supabaseClient.from('doctor_registro').insert([doctorData]);
             if (insertError) throw insertError;
 
-            // Éxito
             messageDiv.innerHTML = `<h2>¡Registro Exitoso!</h2><p>El perfil del Dr. ${doctorData.nombre} ha sido creado y su firma biométrica ha sido enrolada.</p>`;
-            nextCard(9); // Mover a la tarjeta de mensaje final
+            nextCard(9);
 
         } catch (error) {
             alert(`Error en el guardado final: ${error.message}`);
@@ -351,4 +323,3 @@
 </body>
 </html>
 
-    
