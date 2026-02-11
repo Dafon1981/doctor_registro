@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>VeriDoc-Med: Registro Biométrico v4.0 (Firma Precisa)</title>
+    <title>VeriDoc-Med: Registro Biométrico v4.1 (Intuitivo)</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.8"></script>
     <style>
         :root {
@@ -99,8 +99,7 @@
 
 <div class="form-container">
     <div class="form-carousel" id="form-carousel">
-
-        <!-- Tarjetas con nuevo header y logo -->
+        <!-- El HTML de las tarjetas no cambia -->
         <div class="form-card" id="card-0"><div class="card-header"><img src="https://www.hospitalcayetano.gob.pe/PortalWeb/assets/icon/logo-final.png" alt="Logo" class="logo"></div><label for="nombre">Nombre Completo</label><input type="text" id="nombre" required><div class="button-container"><button class="btn-next" onclick="nextCard(1 )">Siguiente →</button></div></div>
         <div class="form-card" id="card-1"><div class="card-header"><img src="https://www.hospitalcayetano.gob.pe/PortalWeb/assets/icon/logo-final.png" alt="Logo" class="logo"></div><label for="dni">DNI</label><input type="text" id="dni" required><div class="button-container"><button class="btn-next" onclick="nextCard(2 )">Siguiente →</button></div></div>
         <div class="form-card" id="card-2"><div class="card-header"><img src="https://www.hospitalcayetano.gob.pe/PortalWeb/assets/icon/logo-final.png" alt="Logo" class="logo"></div><label for="cmp">Nº de Colegiatura (CMP )</label><input type="text" id="cmp" required><div class="button-container"><button class="btn-next" onclick="nextCard(3)">Siguiente →</button></div></div>
@@ -126,10 +125,25 @@
     let rneCount = 1;
 
     window.onload = () => {
-        // La nueva función setupCanvas irá en la segunda parte
         setupCanvas('analisis');
         setupCanvas('verificacion');
         document.getElementById('nombre').focus();
+
+        // --- NUEVO: Añadir el listener para la tecla Enter ---
+        const inputs = document.querySelectorAll('input[type="text"], input[type="email"], input[type="password"]');
+        inputs.forEach(input => {
+            input.addEventListener('keydown', (event) => {
+                if (event.key === 'Enter') {
+                    event.preventDefault(); // Evitar comportamiento por defecto
+                    // Encontrar el botón "Siguiente" de la tarjeta actual y hacer clic
+                    const parentCard = input.closest('.form-card');
+                    const nextButton = parentCard.querySelector('.btn-next');
+                    if (nextButton) {
+                        nextButton.click();
+                    }
+                }
+            });
+        });
     };
     function togglePasswordVisibility() {
         const passwordInput = document.getElementById('clave');
@@ -149,6 +163,7 @@
             document.getElementById(`rne-group-${rneCount}`).classList.remove('hidden');
         }
         if (rneCount === 3) {
+            // Ocultar el botón si ya se mostraron los 3
             event.target.classList.add('hidden');
         }
     }
@@ -226,31 +241,24 @@
         if (nextInput) setTimeout(() => nextInput.focus(), 500);
     }
 
-    // --- NUEVO: Lógica del Canvas de Alta Precisión ---
     function setupCanvas(id) {
         const canvas = document.getElementById(`canvas-${id}`);
         const ctx = canvas.getContext('2d');
-        
-        // Ajustar el tamaño del canvas para alta resolución (evita pixelación)
         const dpr = window.devicePixelRatio || 1;
         const rect = canvas.getBoundingClientRect();
         canvas.width = rect.width * dpr;
         canvas.height = rect.height * dpr;
         ctx.scale(dpr, dpr);
-
         ctx.lineCap = 'round';
         ctx.lineJoin = 'round';
-
         let points = [];
         let isDrawing = false;
-        let lastWidth = 2.5; // Grosor inicial
-
+        let lastWidth = 2.5;
         function getPos(e) {
             const rect = canvas.getBoundingClientRect();
             const evt = e.touches ? e.touches[0] : e;
             return { x: evt.clientX - rect.left, y: evt.clientY - rect.top, time: Date.now() };
         }
-
         function start(e) {
             isDrawing = true;
             points = [];
@@ -258,37 +266,25 @@
             points.push(pos);
             lastWidth = 2.5;
         }
-
         function draw(e) {
             if (!isDrawing) return;
             e.preventDefault();
-
             const currentPoint = getPos(e);
             const lastPoint = points[points.length - 1];
-
             const dist = Math.hypot(currentPoint.x - lastPoint.x, currentPoint.y - lastPoint.y);
             const time = currentPoint.time - lastPoint.time;
-            
-            // Calcula la velocidad y ajusta el grosor de la línea
             const velocity = dist / (time || 1);
-            const targetWidth = Math.max(4.0 - velocity * 1.5, 1.0); // Más rápido = más delgado
-            lastWidth = lastWidth * 0.7 + targetWidth * 0.3; // Suaviza el cambio de grosor
-
+            const targetWidth = Math.max(4.0 - velocity * 1.5, 1.0);
+            lastWidth = lastWidth * 0.7 + targetWidth * 0.3;
             ctx.lineWidth = lastWidth;
             ctx.strokeStyle = '#000';
-
             ctx.beginPath();
             ctx.moveTo(lastPoint.x, lastPoint.y);
             ctx.lineTo(currentPoint.x, currentPoint.y);
             ctx.stroke();
-            
             points.push(currentPoint);
         }
-
-        function stop() {
-            isDrawing = false;
-        }
-
+        function stop() { isDrawing = false; }
         canvas.addEventListener('mousedown', start);
         canvas.addEventListener('mousemove', draw);
         canvas.addEventListener('mouseup', stop);
@@ -311,42 +307,32 @@
     async function saveDoctor() {
         const saveButton = document.querySelector('.btn-save');
         const messageDiv = document.getElementById('message');
-
         if (isCanvasEmpty('verificacion')) {
             alert('Debe realizar la firma de confirmación.');
             return;
         }
-
         const firmaVerificacionURL = document.getElementById('canvas-verificacion').toDataURL();
         const similitud = (1 - Math.abs(firmaVerificacionURL.length - doctorData.firmaAnalisisDataURL.length) / doctorData.firmaAnalisisDataURL.length) * 100;
-        
         if (similitud < 85) {
             alert(`Las firmas no son lo suficientemente parecidas (Similitud: ${similitud.toFixed(1)}%). Por favor, intente de nuevo la firma de confirmación.`);
             clearCanvas('verificacion');
             return;
         }
-
         saveButton.disabled = true;
         saveButton.textContent = 'Guardando...';
-
         try {
             const response = await fetch(firmaVerificacionURL);
             const blob = await response.blob();
             const filePath = `public/${doctorData.dni}_${Date.now()}.png`;
             const { error: uploadError } = await supabaseClient.storage.from('firma_doctores').upload(filePath, blob, { contentType: 'image/png' });
             if (uploadError) throw uploadError;
-
             const { data: urlData } = supabaseClient.storage.from('firma_doctores').getPublicUrl(filePath);
             doctorData.firma_maestra_url = urlData.publicUrl;
-
             delete doctorData.firmaAnalisisDataURL;
-
             const { error: insertError } = await supabaseClient.from('doctor_registro').insert([doctorData]);
             if (insertError) throw insertError;
-
             messageDiv.innerHTML = `<h2>¡Registro Exitoso!</h2><p>El perfil del Dr. ${doctorData.nombre} ha sido creado y su firma biométrica ha sido enrolada.</p>`;
             nextCard(9);
-
         } catch (error) {
             alert(`Error en el guardado final: ${error.message}`);
             saveButton.disabled = false;
